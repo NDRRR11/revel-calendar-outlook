@@ -8,7 +8,7 @@ function getPref(name, defaultVal) {
 }
 
 async function loadCalendar() {
-    const icsUrl = getPref('icsUrl', '');
+    let icsUrl = getPref('icsUrl', '');
     const mode = getPref('mode', 'weekly');
     const maxDays = parseInt(getPref('maxDays', '7'));
 
@@ -16,16 +16,32 @@ async function loadCalendar() {
     document.documentElement.style.setProperty('--text-color', getPref('textColor', '#ffffff'));
     document.documentElement.style.setProperty('--font-size', getPref('fontSize', '16') + 'px');
 
+    const header = document.getElementById('calendar-header');
+    const container = document.getElementById('calendar-events');
+
     if (!icsUrl) {
-        document.getElementById('calendar-events').innerHTML = '<div class="event-item">Please provide an Outlook ICS URL.</div>';
+        header.textContent = "Configuration Required";
+        container.innerHTML = '<div class="event-item">Please enter your Outlook ICS URL in the gadget properties.</div>';
         return;
     }
 
+    // Convert Outlook webcal:// to https://
+    if (icsUrl.startsWith('webcal://')) {
+        icsUrl = 'https://' + icsUrl.substring(9);
+    }
+
+    header.textContent = "Fetching calendar...";
+
     try {
-        // CORS proxy utilized for browser/player fetching compatibility
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(icsUrl)}`;
         const response = await fetch(proxyUrl);
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.text();
+
+        if (!data || data.includes('<!DOCTYPE html>')) {
+            throw new Error("Invalid ICS feed or URL blocked by redirect/auth.");
+        }
 
         const jcalData = ICAL.parse(data);
         const comp = new ICAL.Component(jcalData);
@@ -36,15 +52,16 @@ async function loadCalendar() {
 
         vevents.forEach(vevent => {
             const event = new ICAL.Event(vevent);
-            const startDate = event.startDate.toJSDate();
-
-            if (startDate >= now) {
-                events.push({
-                    title: event.summary,
-                    startDate: startDate,
-                    timeString: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    dateString: startDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-                });
+            if (event.startDate) {
+                const startDate = event.startDate.toJSDate();
+                if (startDate >= now) {
+                    events.push({
+                        title: event.summary || 'Untitled Meeting',
+                        startDate: startDate,
+                        timeString: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        dateString: startDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+                    });
+                }
             }
         });
 
@@ -52,7 +69,8 @@ async function loadCalendar() {
         render(events, mode, maxDays);
     } catch (err) {
         console.error(err);
-        document.getElementById('calendar-events').innerHTML = '<div class="event-item">Error loading calendar feed.</div>';
+        header.textContent = "Error Loading Feed";
+        container.innerHTML = `<div class="event-item" style="color: #ff6b6b;">${err.message}</div>`;
     }
 }
 
@@ -62,7 +80,8 @@ function render(events, mode, maxDays) {
     container.innerHTML = '';
 
     if (events.length === 0) {
-        container.innerHTML = '<div class="event-item">No upcoming meetings.</div>';
+        header.textContent = "Schedule";
+        container.innerHTML = '<div class="event-item">No upcoming meetings found.</div>';
         return;
     }
 
@@ -80,6 +99,11 @@ function render(events, mode, maxDays) {
         header.textContent = "Upcoming Schedule";
         const filtered = events.filter(ev => (ev.startDate - new Date()) / (1000 * 60 * 60 * 24) <= maxDays);
         
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="event-item">No meetings in the selected range.</div>';
+            return;
+        }
+
         filtered.forEach(ev => {
             const div = document.createElement('div');
             div.className = 'event-item weekly-view';
@@ -94,4 +118,4 @@ function render(events, mode, maxDays) {
 }
 
 loadCalendar();
-setInterval(loadCalendar, 15 * 60 * 1000); // Refresh every 15 mins
+setInterval(loadCalendar, 15 * 60 * 1000);
