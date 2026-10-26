@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Outlook Calendar Gadget</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+  <style>
+    :root {
+        --bg-color: rgba(0, 0, 0, 0.6);
+        --text-color: #ffffff;
+        --font-size: 16px;
+    }
+    body {
+        margin: 0;
+        padding: 12px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: Arial, sans-serif;
+        font-size: var(--font-size);
+        box-sizing: border-box;
+        height: 100vh;
+        overflow: hidden;
+    }
+    #calendar-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    #calendar-header {
+        font-weight: bold;
+        font-size: 1.1em;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        padding-bottom: 4px;
+    }
+    #calendar-events {
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    .event-item {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 10px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+    
+    /* Weekly View Element Ordering: Date -> Time -> Meeting Name */
+    .weekly-view .event-date { font-size: 0.85em; opacity: 0.8; order: 1; }
+    .weekly-view .event-time { font-size: 0.9em; font-weight: bold; order: 2; color: #4facfe; }
+    .weekly-view .event-name { font-size: 1em; order: 3; }
+
+    /* Daily Prominent View Ordering & Styling */
+    .daily-view {
+        background: linear-gradient(135deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.3));
+        border: 2px solid #00f2fe;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+        justify-content: center;
+        height: 100%;
+        box-sizing: border-box;
+    }
+    .daily-view .event-name { font-size: 1.6em; font-weight: bold; order: 1; margin-bottom: 6px; }
+    .daily-view .event-time { font-size: 1.3em; order: 2; margin-bottom: 4px; color: #ffeb3b; }
+    .daily-view .event-date { font-size: 1.1em; order: 3; opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div id="calendar-container">
+    <div id="calendar-header"></div>
+    <div id="calendar-events">Loading calendar...</div>
+  </div>
+
+  <script>
+    function getParam(name, defaultVal) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name) !== null ? params.get(name) : defaultVal;
+    }
+
+    async function loadCalendar() {
+        const icsUrl = getParam('icsUrl', '');
+        const mode = getParam('mode', 'weekly');
+        const maxDays = parseInt(getParam('maxDays', '7'));
+        const bgColor = getParam('bgColor', 'rgba(0,0,0,0.5)');
+        const textColor = getParam('textColor', '#ffffff');
+        const fontSize = getParam('fontSize', '16');
+
+        document.documentElement.style.setProperty('--bg-color', bgColor);
+        document.documentElement.style.setProperty('--text-color', textColor);
+        document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+
+        if (!icsUrl) {
+            document.getElementById('calendar-events').innerHTML = '<div class="event-item">Please provide an ICS URL in the zone source query string.</div>';
+            return;
+        }
+
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(icsUrl);
+        
+        try {
+            const response = await fetch(proxyUrl);
+            const data = await response.text();
+            const jcalData = ICAL.parse(data);
+            const comp = new ICAL.Component(jcalData);
+            const vevents = comp.getAllSubcomponents('vevent');
+
+            const now = new Date();
+            const events = [];
+
+            vevents.forEach(vevent => {
+                const event = new ICAL.Event(vevent);
+                const startDate = event.startDate.toJSDate();
+
+                if (startDate >= now) {
+                    events.push({
+                        title: event.summary,
+                        startDate: startDate,
+                        timeString: startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        dateString: startDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+                    });
+                }
+            });
+
+            events.sort((a, b) => a.startDate - b.startDate);
+            render(events, mode, maxDays);
+        } catch (err) {
+            console.error(err);
+            document.getElementById('calendar-events').innerHTML = '<div class="event-item">Error loading calendar feed. Check URL or network.</div>';
+        }
+    }
+
+    function render(events, mode, maxDays) {
+        const container = document.getElementById('calendar-events');
+        const header = document.getElementById('calendar-header');
+        container.innerHTML = '';
+
+        if (events.length === 0) {
+            container.innerHTML = '<div class="event-item">No upcoming meetings.</div>';
+            return;
+        }
+
+        if (mode === 'daily') {
+            header.style.display = 'none';
+            const ev = events[0];
+            container.innerHTML = `
+                <div class="event-item daily-view">
+                    <div class="event-name">${ev.title}</div>
+                    <div class="event-time">${ev.timeString}</div>
+                    <div class="event-date">${ev.dateString}</div>
+                </div>
+            `;
+        } else {
+            header.style.display = 'block';
+            header.textContent = "Upcoming Schedule";
+            const filtered = events.filter(ev => (ev.startDate - new Date()) / (1000 * 60 * 60 * 24) <= maxDays);
+            
+            filtered.forEach(ev => {
+                const div = document.createElement('div');
+                div.className = 'event-item weekly-view';
+                div.innerHTML = `
+                    <div class="event-date">${ev.dateString}</div>
+                    <div class="event-time">${ev.timeString}</div>
+                    <div class="event-name">${ev.title}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    }
+
+    loadCalendar();
+    setInterval(loadCalendar, 15 * 60 * 1000);
+  </script>
+</body>
+</html>
