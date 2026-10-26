@@ -4,15 +4,15 @@
     <Require feature="dynamic-height"/>
   </ModulePrefs>
   
-  <UserPref name="icsUrl" display_name="Outlook ICS Webcal URL" datatype="string" default_value="" />
-  <UserPref name="mode" display_name="View Mode (weekly or daily)" datatype="enum" default_value="weekly">
+  <UserPref name="icsUrl" display_name="Outlook ICS Webcal URL" type="string" default_value="" />
+  <UserPref name="mode" display_name="View Mode (weekly or daily)" type="enum" default_value="weekly">
     <EnumValue value="weekly" display_value="Weekly View" />
     <EnumValue value="daily" display_value="Daily View" />
   </UserPref>
-  <UserPref name="maxDays" display_name="Days to Show (Weekly)" datatype="string" default_value="7" />
-  <UserPref name="bgColor" display_name="Background Color (rgba)" datatype="string" default_value="rgba(0,0,0,0.5)" />
-  <UserPref name="textColor" display_name="Text Color" datatype="string" default_value="#ffffff" />
-  <UserPref name="fontSize" display_name="Base Font Size (px)" datatype="string" default_value="16" />
+  <UserPref name="maxDays" display_name="Days to Show (Weekly)" type="string" default_value="7" />
+  <UserPref name="bgColor" display_name="Background Color (rgba)" type="string" default_value="rgba(0,0,0,0.5)" />
+  <UserPref name="textColor" display_name="Text Color" type="string" default_value="#ffffff" />
+  <UserPref name="fontSize" display_name="Base Font Size (px)" type="string" default_value="16" />
 
   <Content type="html">
     <![CDATA[
@@ -150,7 +150,7 @@
               }
 
               if (mode === 'daily') {
-                  header.style.display = 'none'; // Hide header for clean daily notice view
+                  header.style.display = 'none';
                   const ev = events[0];
                   container.innerHTML = `
                       <div class="event-item daily-view">
