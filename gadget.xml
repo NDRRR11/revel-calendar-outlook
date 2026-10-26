@@ -14,15 +14,16 @@
       <!DOCTYPE html>
       <html>
       <head>
-        <link rel="stylesheet" href="https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/style.css">
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="style.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
       </head>
       <body>
         <div id="calendar-container">
-          <div id="calendar-header"></div>
+          <div id="calendar-header">Loading...</div>
           <div id="calendar-events"></div>
         </div>
-        <script src="https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/app.js"></script>
+        <script src="app.js"></script>
       </body>
       </html>
     ]]>
