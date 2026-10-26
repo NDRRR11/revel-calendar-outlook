@@ -1,31 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Module>
-  <ModulePrefs title="Custom Outlook ICS Calendar" description="Custom calendar gadget supporting weekly and daily views.">
+  <ModulePrefs title="Custom Outlook Calendar" description="ICS Calendar Gadget">
     <Require feature="dynamic-height"/>
   </ModulePrefs>
-  <UserPref name="icsUrl" display_name="Outlook ICS Webcal URL" default_value="" />
-  <UserPref name="mode" display_name="View Mode (weekly or daily)" default_value="weekly" />
-  <UserPref name="maxDays" display_name="Days to Show (Weekly)" default_value="7" />
-  <UserPref name="bgColor" display_name="Background Color (e.g. rgba(0,0,0,0.5))" default_value="rgba(0, 0, 0, 0.5)" />
-  <UserPref name="textColor" display_name="Text Color" default_value="#ffffff" />
-  <UserPref name="fontSize" display_name="Base Font Size (px)" default_value="16" />
+
+  <!-- UserPref tags MUST be inside <Module> alongside <ModulePrefs> -->
+  <UserPref name="icsUrl" display_name="Outlook ICS Webcal URL" datatype="string" default_value="" />
+  <UserPref name="mode" display_name="View Mode (weekly or daily)" datatype="enum" default_value="weekly">
+    <EnumValue value="weekly" display_value="Weekly View" />
+    <EnumValue value="daily" display_value="Daily View" />
+  </UserPref>
+  <UserPref name="maxDays" display_name="Days to Show" datatype="string" default_value="7" />
+  <UserPref name="bgColor" display_name="Background Color (rgba)" datatype="string" default_value="rgba(0,0,0,0.5)" />
+  <UserPref name="textColor" display_name="Text Color" datatype="string" default_value="#ffffff" />
+  <UserPref name="fontSize" display_name="Base Font Size (px)" datatype="string" default_value="16" />
+
   <Content type="html">
     <![CDATA[
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <link rel="stylesheet" href="style.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
-      </head>
-      <body>
-        <div id="calendar-container">
-          <div id="calendar-header">Loading...</div>
-          <div id="calendar-events"></div>
-        </div>
-        <script src="app.js"></script>
-      </body>
-      </html>
+      <!-- HTML Content Here -->
     ]]>
   </Content>
 </Module>
